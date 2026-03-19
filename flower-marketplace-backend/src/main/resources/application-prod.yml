@@ -1,0 +1,56 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# application-prod.yml  –  Profile PRODUCTION
+#
+# Kích hoạt bằng:  SPRING_PROFILES_ACTIVE=prod
+#
+# MỤC ĐÍCH: Deploy lên VPS / server thật.
+#            TẤT CẢ giá trị nhạy cảm phải qua biến môi trường,
+#            KHÔNG hardcode trong file này.
+#
+# KHÁC với profile local/dev:
+#   - ddl-auto: validate  → không tự sửa schema, dùng migration tool
+#   - show-sql: false     → không in SQL (hiệu năng + bảo mật)
+#   - log level INFO      → ít log hơn
+#   - pool size lớn hơn   → phục vụ nhiều user cùng lúc
+# ══════════════════════════════════════════════════════════════════════════════
+
+spring:
+
+  # ╔══════════════════════════════════════════════════════════════╗
+  # ║  MYSQL PRODUCTION                                           ║
+  # ╠══════════════════════════════════════════════════════════════╣
+  # ║  Tất cả giá trị PHẢI set qua biến môi trường server        ║
+  # ║  Không dùng default hardcode trong prod!                    ║
+  # ╚══════════════════════════════════════════════════════════════╝
+  datasource:
+    # url đọc từ application.yml base, chỉ override hikari pool size
+    hikari:
+      maximum-pool-size: 30         # nhiều connection hơn cho prod
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  jpa:
+    show-sql: false                 # KHÔNG in SQL trong prod (bảo mật + hiệu năng)
+    hibernate:
+      # validate: chỉ kiểm tra schema khớp Entity, KHÔNG tự sửa
+      # Dùng Flyway/Liquibase để migrate schema trong prod
+      ddl-auto: validate
+
+# ── Logging tối giản cho prod ──────────────────────────────────────────────────
+logging:
+  level:
+    com.flowermarketplace: INFO     # chỉ INFO, không DEBUG
+    org.springframework.security: WARN
+    org.hibernate: WARN
+    com.zaxxer.hikari: WARN
+  file:
+    name: /app/logs/flower-marketplace.log
+
+# ── Actuator thêm prometheus cho monitoring ────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

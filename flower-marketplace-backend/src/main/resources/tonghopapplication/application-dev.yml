@@ -1,0 +1,60 @@
+# spring:
+#   jpa:
+#     show-sql: true
+#     hibernate:
+#       ddl-auto: update
+
+#   mail:
+#     host: localhost
+#     port: 1025
+#     username:
+#     password:
+#     properties:
+#       mail.smtp.auth: false
+#       mail.smtp.starttls.enable: false
+
+# logging:
+#   level:
+#     com.flowermarketplace: DEBUG
+#     org.springframework.security: DEBUG
+#     org.hibernate.SQL: DEBUG
+#     org.hibernate.type.descriptor.sql: TRACE
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/flower_marketplace?useSSL=false&serverTimezone=UTC
+    username: root
+    password: 240805
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10 # giảm từ 20 → nhẹ hơn
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  elasticsearch:
+    uris: http://localhost:9200
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.flowermarketplace: DEBUG

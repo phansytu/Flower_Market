@@ -1,0 +1,57 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# application-dev.yml  –  Profile DEV (Docker Compose)
+#
+# Kích hoạt bằng:  SPRING_PROFILES_ACTIVE=dev
+#
+# MỤC ĐÍCH: Chạy toàn bộ stack qua docker-compose.
+#            MySQL TRONG CONTAINER (không phải Workbench).
+#            Dùng khi muốn test đầy đủ Redis + RabbitMQ + ES.
+#
+# KHÁC với profile local:
+#   - DB_HOST=mysql  (tên service trong docker-compose, không phải localhost)
+#   - Mail dùng MailHog container
+#   - Tất cả service đều chạy đầy đủ
+# ══════════════════════════════════════════════════════════════════════════════
+
+spring:
+
+  # ╔══════════════════════════════════════════════════════════════╗
+  # ║  MYSQL TRONG DOCKER CONTAINER                               ║
+  # ╠══════════════════════════════════════════════════════════════╣
+  # ║  Host = "mysql" (tên service trong docker-compose.yml)      ║
+  # ║  Không phải localhost! Container giao tiếp qua tên service. ║
+  # ║  Username/password đọc từ .env                              ║
+  # ╚══════════════════════════════════════════════════════════════╝
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${DB_NAME:flower_marketplace}?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    #                              ↑
+    #         "mysql" = tên service trong docker-compose, KHÔNG PHẢI localhost
+    username: ${DB_USERNAME:flower_user}   # user tạo trong docker-compose
+    password: ${DB_PASSWORD:flower_pass}   # pass tạo trong docker-compose
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Mail dùng MailHog container (bắt email thay vì gửi thật)
+  # Xem email tại: http://localhost:8025
+  mail:
+    host: mailhog              # tên service mailhog trong docker-compose
+    port: 1025
+    username:
+    password:
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.flowermarketplace: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

@@ -1,0 +1,192 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# application.yml  –  Cấu hình GỐC (base config)
+#
+# File này là nền tảng, được MERGE với profile đang active:
+#   - application-local.yml  →  chạy trực tiếp, MySQL từ Workbench  ← BẠN DÙNG CÁI NÀY
+#   - application-dev.yml    →  chạy qua Docker Compose (MySQL trong container)
+#   - application-prod.yml   →  deploy lên server thật
+#
+# Các biến ${VAR:default} đọc từ file .env hoặc biến môi trường.
+# Giá trị sau dấu : là default khi biến không được set.
+# ══════════════════════════════════════════════════════════════════════════════
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api # tất cả API bắt đầu bằng /api/...
+
+spring:
+  application:
+    name: flower-marketplace-backend
+
+  # ╔══════════════════════════════════════════════════════════════╗
+  # ║  MYSQL – CẦN SỬA ĐỔI                                       ║
+  # ╚══════════════════════════════════════════════════════════════╝
+  datasource:
+    # URL kết nối MySQL – đọc host/port/name từ biến môi trường
+    # Các tham số trong URL:
+    #   useSSL=false              → không dùng SSL (local dev)
+    #   serverTimezone=UTC        → múi giờ server (profile local đổi thành Asia/Ho_Chi_Minh)
+    #   allowPublicKeyRetrieval=true → cần cho MySQL 8 với root user
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:flower_marketplace}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+
+    # ★ SỬA TRONG FILE .env:
+    #   DB_USERNAME=root                    ← username MySQL Workbench của bạn
+    #   DB_PASSWORD=mật_khẩu_của_bạn       ← mật khẩu MySQL Workbench
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:240805}
+
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    hikari: # HikariCP – connection pool
+      maximum-pool-size: 20 # tối đa 20 kết nối đồng thời
+      minimum-idle: 5
+      connection-timeout: 30000 # 30 giây timeout kết nối
+
+  # ╔══════════════════════════════════════════════════════════════╗
+  # ║  JPA / HIBERNATE                                            ║
+  # ╚══════════════════════════════════════════════════════════════╝
+  jpa:
+    hibernate:
+      # ★ GIÁ TRỊ QUAN TRỌNG:
+      #   update   → tự tạo/sửa bảng theo Entity (dùng cho dev)
+      #   validate → chỉ kiểm tra, không sửa (dùng cho prod)
+      #   create   → xóa và tạo lại mỗi lần khởi động (NGUY HIỂM)
+      ddl-auto: update
+    show-sql: false # profile local bật thành true để debug
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        use_sql_comments: true
+
+  # ── Redis (cache) ─────────────────────────────────────────────────────────
+  # Profile local thay bằng cache.type=simple nếu không có Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
+
+    # Elasticsearch – profile local tắt bằng enabled: false
+    elasticsearch:
+      repositories:
+        enabled: true
+
+  # ── Elasticsearch ──────────────────────────────────────────────────────────
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
+
+  # ── RabbitMQ (message queue) ───────────────────────────────────────────────
+  # Profile local tắt auto-startup để không crash khi không có RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+
+  # ── Mail (SMTP) ────────────────────────────────────────────────────────────
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  # ── Upload file ────────────────────────────────────────────────────────────
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# ── JWT ────────────────────────────────────────────────────────────────────────
+# ★ SỬA TRONG FILE .env:
+#   JWT_SECRET=chuỗi_hex_64_ký_tự    ← tạo bằng: openssl rand -hex 32
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: 86400000 # access token: 24 giờ (ms)
+  refresh-expiration: 604800000 # refresh token: 7 ngày (ms)
+
+# ── Upload path ────────────────────────────────────────────────────────────────
+file:
+  upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+  max-size: 10485760 # 10MB
+  allowed-types: image/jpeg,image/png,image/gif,image/webp
+
+# ── RabbitMQ queue names ───────────────────────────────────────────────────────
+rabbitmq:
+  exchange:
+    notification: flower.notification.exchange
+    order: flower.order.exchange
+  queue:
+    email: flower.email.queue
+    sms: flower.sms.queue
+    order-status: flower.order.status.queue
+    push-notification: flower.push.notification.queue
+  routing-key:
+    email: flower.email
+    order-status: flower.order.status
+    push: flower.push
+
+# ── Swagger / OpenAPI ──────────────────────────────────────────────────────────
+# Truy cập: http://localhost:8080/api/swagger-ui.html
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
+# ── Actuator (health check) ────────────────────────────────────────────────────
+# Truy cập: http://localhost:8080/api/actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.flowermarketplace: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/flower-marketplace.log
+    max-size: 10MB
+    max-history: 30

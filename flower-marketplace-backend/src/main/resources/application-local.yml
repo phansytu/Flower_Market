@@ -1,0 +1,124 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# application-local.yml  –  Profile LOCAL  ← FILE BẠN CẦN KHI DÙNG WORKBENCH
+#
+# Kích hoạt bằng:  SPRING_PROFILES_ACTIVE=local
+# File này OVERRIDE các giá trị trong application.yml
+#
+# MỤC ĐÍCH: Chạy Spring Boot trực tiếp trên máy tính cá nhân,
+#            kết nối MySQL từ Workbench đã cài sẵn.
+#            Redis / RabbitMQ / Elasticsearch được tắt/giảm xuống.
+# ══════════════════════════════════════════════════════════════════════════════
+
+spring:
+
+  # ╔══════════════════════════════════════════════════════════════╗
+  # ║  MYSQL – PHẦN BẠN CẦN SỬA                                  ║
+  # ╠══════════════════════════════════════════════════════════════╣
+  # ║  Sửa trong file .env (KHÔNG sửa trực tiếp ở đây):          ║
+  # ║    DB_HOST=localhost           ← thường là localhost         ║
+  # ║    DB_PORT=3306                ← port MySQL Workbench        ║
+  # ║    DB_NAME=flower_marketplace  ← tên database               ║
+  # ║    DB_USERNAME=root            ← username trong Workbench    ║
+  # ║    DB_PASSWORD=abc123          ← mật khẩu MySQL của bạn     ║
+  # ╚══════════════════════════════════════════════════════════════╝
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:flower_marketplace}?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    #                                                              ↑
+    #                  Đổi thành Asia/Ho_Chi_Minh thay vì UTC để đúng múi giờ VN
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}       # ← để trống = đọc từ .env
+
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5          # dev không cần nhiều connection
+      minimum-idle: 2
+      connection-timeout: 30000
+      connection-test-query: SELECT 1   # ping kiểm tra connection còn sống
+
+  # ── JPA / Hibernate ───────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      # update = tự tạo bảng còn thiếu, sửa cột bị thay đổi
+      # Nếu đã chạy file schema.sql thì giữ update để sync thay đổi Entity
+      ddl-auto: update
+    show-sql: true                  # in SQL ra console để debug
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true            # SQL in ra đẹp, dễ đọc
+        default_batch_fetch_size: 10
+
+  # ── Cache – KHÔNG CẦN Redis khi chạy local ────────────────────────────────
+  cache:
+    type: simple                    # dùng in-memory cache thay Redis
+    #      ↑ Thay bằng "redis" nếu bạn muốn bật Redis trở lại
+
+  # ── Redis – giữ config nhưng timeout ngắn (fail nhanh nếu không có) ───────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 500ms                # 0.5 giây thay vì 2 giây → phát hiện lỗi nhanh
+
+    # ── Elasticsearch – TẮT repositories khi không cần full-text search ──────
+    elasticsearch:
+      repositories:
+        enabled: false              # tắt → dùng MySQL LIKE query thay thế
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
+
+  # ── RabbitMQ – giữ connection nhưng TẮT consumer listener ────────────────
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        auto-startup: false         # không khởi động consumer → không crash
+        #               ↑ Đổi thành true nếu muốn bật RabbitMQ consumer
+
+  # ── Mail – dùng MailHog local hoặc tắt ───────────────────────────────────
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}         # MailHog SMTP port
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: false         # MailHog không cần auth
+      mail.smtp.starttls.enable: false
+
+  # ── Tắt hoàn toàn service (bỏ comment nếu gặp lỗi Connection refused) ─────
+  autoconfigure:
+    exclude:
+      # Redis – bỏ comment 2 dòng dưới nếu không cài Redis:
+      # - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      # - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+      # RabbitMQ – bỏ comment nếu không cài RabbitMQ:
+      # - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
+      # Elasticsearch – bỏ comment nếu không cài ES:
+      # - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
+      # - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      # - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+
+# ── Logging chi tiết khi dev ───────────────────────────────────────────────────
+logging:
+  level:
+    com.flowermarketplace: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # in giá trị tham số SQL
+    com.zaxxer.hikari: INFO
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{30} - %msg%n"
+
+# ── Swagger luôn bật khi dev ──────────────────────────────────────────────────
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true

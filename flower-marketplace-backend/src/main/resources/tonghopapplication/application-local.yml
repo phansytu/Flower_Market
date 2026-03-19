@@ -1,0 +1,104 @@
+# ══════════════════════════════════════════════════════════════════
+# Profile: local
+# Dùng khi chạy Spring Boot trực tiếp trên máy, MySQL từ Workbench.
+# Redis / RabbitMQ / Elasticsearch bị tắt hoặc dùng fallback.
+# ══════════════════════════════════════════════════════════════════
+
+spring:
+
+  # ── MySQL (MySQL Workbench local) ─────────────────────────────
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:flower_marketplace}?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+
+  # ── JPA / Hibernate ───────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: update         # tự tạo/update bảng theo Entity
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        default_batch_fetch_size: 10
+
+  # ── Redis – dùng embedded (mock) khi không có Redis ──────────
+  # Nếu bạn không cài Redis: set spring.cache.type=simple
+  cache:
+    type: simple               # fallback: in-memory cache, không cần Redis
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 500ms           # timeout ngắn, fail nhanh nếu không có Redis
+      lettuce:
+        pool:
+          max-active: 3
+          max-idle: 2
+          min-idle: 0
+
+    # ── Elasticsearch – tắt auto-index khi không có ES ──────────
+    elasticsearch:
+      repositories:
+        enabled: false         # tắt ES repositories, dùng MySQL fallback
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
+
+  # ── RabbitMQ – tắt listener, chỉ giữ kết nối tối thiểu ──────
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        auto-startup: false    # không khởi động consumer, tránh crash khi không có RabbitMQ
+
+  # ── Mail – dùng MailHog hoặc tắt ─────────────────────────────
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+  # ── Autoconfigure exclusions (tắt hoàn toàn khi không cần) ──
+  autoconfigure:
+    exclude:
+      # Bỏ comment dòng dưới nếu không cài Redis và muốn tắt hoàn toàn:
+      # - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      # - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      # Bỏ comment nếu không cài RabbitMQ:
+      # - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      # Bỏ comment nếu không cài Elasticsearch:
+      # - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
+
+# ── Logging verbose ───────────────────────────────────────────────
+logging:
+  level:
+    com.flowermarketplace: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.zaxxer.hikari: INFO
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %highlight(%-5level) %cyan(%logger{30}) - %msg%n"
+
+# ── Swagger luôn bật khi dev ──────────────────────────────────────
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true

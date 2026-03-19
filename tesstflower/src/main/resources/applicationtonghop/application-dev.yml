@@ -1,0 +1,35 @@
+# ══════════════════════════════════════════════════════════════════
+# Profile: dev
+# Dùng khi chạy toàn bộ stack qua docker-compose (kể cả MySQL).
+# MySQL chạy trong container, không phải Workbench.
+# ══════════════════════════════════════════════════════════════════
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/${DB_NAME:flower_marketplace}?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    username: ${DB_USERNAME:flower_user}
+    password: ${DB_PASSWORD:flower_pass}
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+  mail:
+    host: mailhog
+    port: 1025
+    username:
+    password:
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+logging:
+  level:
+    com.flowermarketplace: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

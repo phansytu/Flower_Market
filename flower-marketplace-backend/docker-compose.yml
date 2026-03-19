@@ -1,0 +1,25 @@
+services: 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m   # giảm RAM
+    ports:
+      - "9200:9200"
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - elasticsearch
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/flower_marketplace?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 240805
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+    
+
+volumes:
+  mysql_data:
