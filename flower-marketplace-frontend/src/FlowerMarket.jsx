@@ -416,19 +416,67 @@ const LoginPage = ({ onNav }) => {
   }
 
   const handleRegister = async () => {
-    setLoading(true)
-    try {
-      const r = await Auth.register({ ...form, role: 'BUYER' })
-      const { accessToken, refreshToken, ...u } = r.data.data
-      localStorage.setItem('accessToken',  accessToken)
-      localStorage.setItem('refreshToken', refreshToken)
+  setLoading(true)
+
+  try {
+    // ✅ validate cơ bản
+    if (!form.fullName || !form.email || !form.password) {
+      toast.error("Vui lòng nhập đầy đủ thông tin")
+      return
+    }
+
+    // 🔥 tách fullName an toàn
+    const parts = form.fullName.trim().split(/\s+/)
+    const firstName = parts[0]
+    const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "User"
+
+    const payload = {
+      email: form.email,
+      password: form.password,
+      firstName,
+      lastName,
+      phoneNumber: form.phone,
+      role: 'ROLE_BUYER'
+    }
+
+    console.log("SEND:", payload) // debug
+
+    // ✅ gọi API
+    const res = await Auth.register(payload)
+
+    console.log("RES:", res) // debug
+
+    // ⚠️ backend của bạn có thể KHÔNG trả token
+    if (res.data) {
+      const { accessToken, refreshToken, ...u } = res.data
+
+      if (accessToken && refreshToken) {
+        localStorage.setItem('accessToken', accessToken)
+        localStorage.setItem('refreshToken', refreshToken)
+      }
+
       authStore.set(u)
-      toast.success('Đăng ký thành công!')
-      onNav('Homepage')
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Đăng ký thất bại')
-    } finally { setLoading(false) }
+      toast.success(`Chào mừng, ${u.fullName || firstName}!`)
+    } else {
+      // 👉 trường hợp chỉ register thành công
+      toast.success("Đăng ký thành công!")
+    }
+
+    onNav('Homepage')
+
+  } catch (e) {
+    console.log("ERROR FULL:", e)
+
+    const msg =
+      e.response?.data?.message ||
+      e.response?.data?.error ||
+      "Lỗi server"
+
+    toast.error(msg)
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="fade-up" style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:C.bg }}>
@@ -499,7 +547,7 @@ const HomePage = ({ onNav }) => {
   const cats = [
     { emoji:'🌹', name:'Hoa Hồng', val:'ROSE' }, { emoji:'🌻', name:'Hướng Dương', val:'SUNFLOWER' },
     { emoji:'🌷', name:'Tulip', val:'TULIP' }, { emoji:'💐', name:'Bó Hoa', val:'BOUQUET' },
-    { emoji:'🪷', name:'Phong Lan', val:'ORCHID' }, { emoji:'🌼', name:'Cúc', val:'DAISY' },
+    { emoji:'🌷', name:'Phong Lan', val:'ORCHID' }, { emoji:'🌼', name:'Cúc', val:'DAISY' },
     { emoji:'🌺', name:'Hibiscus', val:'HIBISCUS' }, { emoji:'➕', name:'Khác', val:'' },
   ]
 

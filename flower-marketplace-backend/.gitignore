@@ -35,3 +35,5 @@ build/
 .vscode/
 .env
 .env.example
+#applicatiom
+application 
