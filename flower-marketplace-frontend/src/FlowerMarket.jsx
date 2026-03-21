@@ -992,22 +992,39 @@ const CreateListingPage = ({ onNav }) => {
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
   const handleSubmit = async () => {
-    if (!user) { toast.error('Bạn cần đăng nhập để đăng tin'); onNav('Login'); return }
-    if (!form.title || !form.price || !form.category) { toast.error('Vui lòng điền đầy đủ thông tin bắt buộc'); return }
-    setLoading(true)
-    try {
-      const fd = new FormData()
-      Object.entries(form).forEach(([k,v]) => v && fd.append(k, v))
-      images.forEach(f => fd.append('images', f))
-      await Listings.create(fd)
-      toast.success('Đăng tin thành công! 🌸')
-      queryClient.invalidateQueries({ queryKey: ['listings'] })
-      queryClient.invalidateQueries({ queryKey: ['myListings'] })
-      onNav('User Profile')
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Đăng tin thất bại. Hãy kiểm tra backend.')
-    } finally { setLoading(false) }
+  if (!user) { toast.error('Bạn cần đăng nhập để đăng tin'); onNav('Login'); return }
+  if (!form.title || !form.price || !form.category) { toast.error('Vui lòng điền đầy đủ thông tin bắt buộc'); return }
+
+  setLoading(true)
+  try {
+    const fd = new FormData()
+
+    // ✅ gửi JSON đúng format backend yêu cầu
+    fd.append('data', new Blob(
+      [JSON.stringify({
+        ...form,
+        price: Number(form.price),
+        stockQuantity: Number(form.stockQuantity || 1)
+      })],
+      { type: 'application/json' }
+    ))
+
+    // images
+    images.forEach(f => fd.append('images', f))
+
+    await Listings.create(fd)
+
+    toast.success('Đăng tin thành công! 🌸')
+    queryClient.invalidateQueries({ queryKey: ['listings'] })
+    queryClient.invalidateQueries({ queryKey: ['myListings'] })
+    onNav('User Profile')
+
+  } catch (e) {
+    toast.error(e.response?.data?.message || 'Đăng tin thất bại. Hãy kiểm tra backend.')
+  } finally {
+    setLoading(false)
   }
+ }
 
   return (
     <div className="fade-up">
