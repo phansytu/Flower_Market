@@ -6,6 +6,7 @@ import com.flowermarketplace.auth.dto.RefreshTokenRequest;
 import com.flowermarketplace.auth.dto.RegisterRequest;
 import com.flowermarketplace.auth.entity.RefreshToken;
 import com.flowermarketplace.auth.repository.RefreshTokenRepository;
+import com.flowermarketplace.common.enums.Role;
 import com.flowermarketplace.common.exception.BadRequestException;
 import com.flowermarketplace.common.exception.UnauthorizedException;
 import com.flowermarketplace.common.security.JwtUtil;
@@ -28,10 +29,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository        userRepository;
+    private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final JwtUtil               jwtUtil;
-    private final PasswordEncoder       passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
 
     @Value("${jwt.refresh-expiration:604800000}")
@@ -55,14 +56,14 @@ public class AuthService {
                 .email(request.getEmail())
                 .phoneNumber(request.getPhoneNumber())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole() != null ? request.getRole() : com.flowermarketplace.common.enums.Role.ROLE_BUYER)
+                .role(Role.ROLE_BUYER)
                 .enabled(true)
                 .build();
 
         user = userRepository.save(user);
         log.info("New user registered: {} ({})", user.getEmail(), user.getRole());
 
-        String accessToken  = jwtUtil.generateToken(user);
+        String accessToken = jwtUtil.generateToken(user);
         String refreshToken = generateAndSaveRefreshToken(user);
 
         return buildResponse(user, accessToken, refreshToken);
@@ -72,6 +73,8 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        log.info("Email nhận được: {}", request.getEmail());
+        log.info("Mật khẩu nhận được: {}", request.getPassword()); // Cẩn thận khi log pass ở môi trường thật
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
@@ -81,7 +84,7 @@ public class AuthService {
         // Revoke previous refresh tokens
         refreshTokenRepository.revokeAllByUserId(user.getId());
 
-        String accessToken  = jwtUtil.generateToken(user);
+        String accessToken = jwtUtil.generateToken(user);
         String refreshToken = generateAndSaveRefreshToken(user);
 
         log.info("User logged in: {}", user.getEmail());
@@ -103,7 +106,7 @@ public class AuthService {
         rt.setRevoked(true);
         refreshTokenRepository.save(rt);
 
-        String newAccess  = jwtUtil.generateToken(user);
+        String newAccess = jwtUtil.generateToken(user);
         String newRefresh = generateAndSaveRefreshToken(user);
 
         return buildResponse(user, newAccess, newRefresh);

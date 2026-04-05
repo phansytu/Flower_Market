@@ -33,7 +33,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
-    private final UserService  userService;
+    private final UserService userService;
 
     private Long myId(UserDetails ud) {
         return userService.getUserByEmail(ud.getUsername()).getId();
@@ -52,7 +52,7 @@ public class AdminController {
     @GetMapping("/users")
     @Operation(summary = "List all users (paginated)")
     public ResponseEntity<ApiResponse<PagedResponse<UserDto>>> listUsers(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getUsers(page, size)));
     }
@@ -108,7 +108,7 @@ public class AdminController {
     @Operation(summary = "Get ban history for a user")
     public ResponseEntity<ApiResponse<PagedResponse<BanRecordDto>>> getBanHistory(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getBanHistory(id, page, size)));
     }
@@ -116,7 +116,7 @@ public class AdminController {
     @GetMapping("/bans")
     @Operation(summary = "List all currently active bans")
     public ResponseEntity<ApiResponse<PagedResponse<BanRecordDto>>> getActiveBans(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getActiveBans(page, size)));
     }
@@ -126,9 +126,9 @@ public class AdminController {
     @GetMapping("/listings")
     @Operation(summary = "List all listings, optionally filtered by status")
     public ResponseEntity<ApiResponse<PagedResponse<ListingDto>>> listListings(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false)    ListingStatus status) {
+            @RequestParam(required = false) ListingStatus status) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getListings(page, size, status)));
     }
 
@@ -147,9 +147,9 @@ public class AdminController {
     @GetMapping("/orders")
     @Operation(summary = "List all orders, optionally filtered by status")
     public ResponseEntity<ApiResponse<PagedResponse<OrderDto>>> listOrders(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false)    OrderStatus status) {
+            @RequestParam(required = false) OrderStatus status) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getOrders(page, size, status)));
     }
 
@@ -158,9 +158,9 @@ public class AdminController {
     @GetMapping("/payments")
     @Operation(summary = "List all payments, optionally filtered by status")
     public ResponseEntity<ApiResponse<PagedResponse<PaymentDto>>> listPayments(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false)    PaymentStatus status) {
+            @RequestParam(required = false) PaymentStatus status) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getPayments(page, size, status)));
     }
 
@@ -169,7 +169,7 @@ public class AdminController {
     @GetMapping("/reviews")
     @Operation(summary = "List all reviews")
     public ResponseEntity<ApiResponse<PagedResponse<ReviewDto>>> listReviews(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getReviews(page, size)));
     }
@@ -197,7 +197,7 @@ public class AdminController {
     @GetMapping("/audit-logs")
     @Operation(summary = "List all audit log entries")
     public ResponseEntity<ApiResponse<PagedResponse<AuditLogDto>>> getAuditLogs(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getAuditLogs(page, size)));
     }
@@ -206,7 +206,7 @@ public class AdminController {
     @Operation(summary = "Audit logs by a specific admin")
     public ResponseEntity<ApiResponse<PagedResponse<AuditLogDto>>> getByAdmin(
             @PathVariable Long adminId,
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.success(adminService.getAuditLogsByAdmin(adminId, page, size)));
     }
@@ -215,8 +215,8 @@ public class AdminController {
     @Operation(summary = "Audit logs for a specific entity (e.g. USER 42)")
     public ResponseEntity<ApiResponse<PagedResponse<AuditLogDto>>> getByEntity(
             @RequestParam String entityType,
-            @RequestParam Long   entityId,
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam Long entityId,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.success(
                 adminService.getAuditLogsByEntity(entityType, entityId, page, size)));

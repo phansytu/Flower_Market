@@ -51,22 +51,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminService {
 
-    private final UserRepository        userRepo;
-    private final ListingRepository     listingRepo;
-    private final OrderRepository       orderRepo;
-    private final PaymentRepository     paymentRepo;
-    private final ReviewRepository      reviewRepo;
-    private final AuditLogRepository    auditLogRepo;
-    private final BanRecordRepository   banRepo;
+    private final UserRepository userRepo;
+    private final ListingRepository listingRepo;
+    private final OrderRepository orderRepo;
+    private final PaymentRepository paymentRepo;
+    private final ReviewRepository reviewRepo;
+    private final AuditLogRepository auditLogRepo;
+    private final BanRecordRepository banRepo;
     private final AdminConfigRepository configRepo;
-    private final ReviewService         reviewService;
+    private final ReviewService reviewService;
 
-    private final UserMapper    userMapper;
+    private final UserMapper userMapper;
     private final ListingMapper listingMapper;
-    private final OrderMapper   orderMapper;
+    private final OrderMapper orderMapper;
     private final PaymentMapper paymentMapper;
-    private final ReviewMapper  reviewMapper;
-    private final AdminMapper   adminMapper;
+    private final ReviewMapper reviewMapper;
+    private final AdminMapper adminMapper;
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
 
@@ -128,7 +128,7 @@ public class AdminService {
         if (request.getBanType() == BanRecord.BanType.TEMPORARY && request.getExpiresAt() == null) {
             throw new BadRequestException("expiresAt is required for TEMPORARY bans.");
         }
-        User user  = getUser(userId);
+        User user = getUser(userId);
         User admin = getUser(adminId);
 
         // Disable account immediately
@@ -153,7 +153,8 @@ public class AdminService {
     public BanRecordDto liftBan(Long banId, String liftReason, Long adminId) {
         BanRecord ban = banRepo.findById(banId)
                 .orElseThrow(() -> new ResourceNotFoundException("BanRecord", "id", banId));
-        if (!ban.isActive()) throw new BadRequestException("This ban is not active.");
+        if (!ban.isActive())
+            throw new BadRequestException("This ban is not active.");
 
         User admin = getUser(adminId);
         ban.setActive(false);
@@ -174,13 +175,13 @@ public class AdminService {
     public PagedResponse<BanRecordDto> getBanHistory(Long userId, int page, int size) {
         return PagedResponse.of(
                 banRepo.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size))
-                       .map(adminMapper::toBanRecordDto));
+                        .map(adminMapper::toBanRecordDto));
     }
 
     public PagedResponse<BanRecordDto> getActiveBans(int page, int size) {
         return PagedResponse.of(
                 banRepo.findByActiveTrueOrderByCreatedAtDesc(PageRequest.of(page, size))
-                       .map(adminMapper::toBanRecordDto));
+                        .map(adminMapper::toBanRecordDto));
     }
 
     /** Scheduled: auto-lift expired temporary bans every hour. */
@@ -246,13 +247,15 @@ public class AdminService {
     public PagedResponse<ReviewDto> getReviews(int page, int size) {
         return PagedResponse.of(
                 reviewRepo.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()))
-                          .map(reviewMapper::toDto));
+                        .map(reviewMapper::toDto));
     }
 
     @Transactional
     public void moderateReview(Long reviewId, boolean activate, Long adminId) {
-        if (activate) reviewService.reactivateReview(reviewId);
-        else          reviewService.deactivateReview(reviewId);
+        if (activate)
+            reviewService.reactivateReview(reviewId);
+        else
+            reviewService.deactivateReview(reviewId);
         writeAudit(adminId, activate ? "REVIEW_REACTIVATED" : "REVIEW_DEACTIVATED",
                 "REVIEW", reviewId, null, null, null);
     }
@@ -262,31 +265,33 @@ public class AdminService {
     public PagedResponse<AuditLogDto> getAuditLogs(int page, int size) {
         return PagedResponse.of(
                 auditLogRepo.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()))
-                            .map(adminMapper::toAuditLogDto));
+                        .map(adminMapper::toAuditLogDto));
     }
 
     public PagedResponse<AuditLogDto> getAuditLogsByAdmin(Long adminId, int page, int size) {
         return PagedResponse.of(
                 auditLogRepo.findByAdminIdOrderByCreatedAtDesc(adminId, PageRequest.of(page, size))
-                            .map(adminMapper::toAuditLogDto));
+                        .map(adminMapper::toAuditLogDto));
     }
 
     public PagedResponse<AuditLogDto> getAuditLogsByEntity(String entityType, Long entityId, int page, int size) {
         return PagedResponse.of(
-                auditLogRepo.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId, PageRequest.of(page, size))
-                            .map(adminMapper::toAuditLogDto));
+                auditLogRepo
+                        .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId,
+                                PageRequest.of(page, size))
+                        .map(adminMapper::toAuditLogDto));
     }
 
     // ── Platform Config ───────────────────────────────────────────────────────
 
     public List<AdminConfigDto> getAllConfigs() {
         return configRepo.findAll(Sort.by("category", "configKey"))
-                         .stream().map(adminMapper::toConfigDto).toList();
+                .stream().map(adminMapper::toConfigDto).toList();
     }
 
     public List<AdminConfigDto> getConfigsByCategory(String category) {
         return configRepo.findByCategoryOrderByConfigKey(category)
-                         .stream().map(adminMapper::toConfigDto).toList();
+                .stream().map(adminMapper::toConfigDto).toList();
     }
 
     @Transactional
@@ -297,10 +302,13 @@ public class AdminService {
 
         String before = config.getConfigValue();
         config.setConfigValue(request.getConfigValue());
-        if (request.getDescription() != null) config.setDescription(request.getDescription());
-        if (request.getCategory()    != null) config.setCategory(request.getCategory());
-        if (request.getValueType()   != null) config.setValueType(request.getValueType());
-        config.setSensitive(request.isSensitive()); 
+        if (request.getDescription() != null)
+            config.setDescription(request.getDescription());
+        if (request.getCategory() != null)
+            config.setCategory(request.getCategory());
+        if (request.getValueType() != null)
+            config.setValueType(request.getValueType());
+        config.setSensitive(request.isSensitive());
         config.setUpdatedBy(admin);
 
         config = configRepo.save(config);
@@ -326,7 +334,7 @@ public class AdminService {
     }
 
     private void writeAudit(Long adminId, String action, String entityType, Long entityId,
-                             String description, String before, String after) {
+            String description, String before, String after) {
         try {
             User admin = getUser(adminId);
             AuditLog log = AuditLog.builder()
